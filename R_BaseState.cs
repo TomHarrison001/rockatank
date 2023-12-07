@@ -4,7 +4,7 @@ using UnityEngine;
 
 public abstract class R_BaseState : MonoBehaviour
 {
-    public float T;
-    protected float t;
-    public abstract void SetState(R_StateManager stateManager);
+    public abstract Type StateUpdate();
+    public abstract Type StateEnter();
+    public abstract Type StateExit();
 }

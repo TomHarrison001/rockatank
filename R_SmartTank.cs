@@ -36,8 +36,23 @@ public class R_SmartTank : AITank
     // timer
     float t;
 
+    // store facts and rules
+    public Dictionary<string, bool> stats = new Dictionary<string, bool>();
+    public R_Rules rules = new R_Rules();
+
     // AITankStart() used instead of Start()
-    public override void AITankStart() { }
+    public override void AITankStart()
+    {
+        // ADD FACTS
+        stats.Add("lowHealth", false);
+        stats.Add("searchState", false);
+        stats.Add("fleeState", false);
+        stats.Add("chaseState", false);
+        stats.Add("attackState", false);
+
+        // ADD RULES
+        rules.AddRule(new R_Rule("attackState", "lowHealth", typeof(R_SearchState), R_Rule.Predicate.AND));
+    }
 
     // AITankUpdate() in place of Update()
     public override void AITankUpdate()

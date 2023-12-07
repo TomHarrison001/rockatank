@@ -2,18 +2,18 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class R_ChaseState : R_BaseState
+public class R_FleeState : R_BaseState
 {
     private R_SmartTank tank;
 
-    public R_ChaseState(R_SmartTank tank)
+    public R_FleeState(R_SmartTank tank)
     {
         this.tank = tank;
     }
 
     public override Type StateEnter()
     {
-        tank.stats["chaseState"] = true;
+        tank.stats["fleeState"] = true;
 
         // tank.GetComponent<Rigidbody>().isKinematic = false;
 
@@ -27,14 +27,14 @@ public class R_ChaseState : R_BaseState
 
     public override Type StateExit()
     {
-        tank.stats["chaseState"] = false;
+        tank.stats["fleeState"] = false;
 
         return null;
     }
 
     public override Type StateUpdate()
     {
-        // tank.ChaseTarget();
+        // tank.FleeTarget();
 
         foreach (var item in tank.rules.GetRules)
         {
