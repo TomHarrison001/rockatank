@@ -1,4 +1,4 @@
-using System.Collections;
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -15,13 +15,6 @@ public class R_ChaseState : R_BaseState
     {
         tank.stats["chaseState"] = true;
 
-        // tank.GetComponent<Rigidbody>().isKinematic = false;
-
-        /*if (tank.shootParticles.isPlaying)
-        {
-            tank.shootParticles.Stop();
-        }*/
-
         return null;
     }
 
@@ -34,7 +27,7 @@ public class R_ChaseState : R_BaseState
 
     public override Type StateUpdate()
     {
-        // tank.ChaseTarget();
+        tank.Chase();
 
         foreach (var item in tank.rules.GetRules)
         {

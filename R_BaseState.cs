@@ -1,8 +1,6 @@
-using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+using System;
 
-public abstract class R_BaseState : MonoBehaviour
+public abstract class R_BaseState
 {
     public abstract Type StateUpdate();
     public abstract Type StateEnter();

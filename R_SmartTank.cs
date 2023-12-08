@@ -1,183 +1,159 @@
-using System.Collections;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
+// require R_StateMachine
+[RequireComponent(typeof(R_StateMachine))]
+
 public class R_SmartTank : AITank
 {
-    // minimum no. of state machines (3): Search, Chase, Attack
-    // obstacles stun the tank
     // consumables: hp +25, ammo +3, fuel +30
     // projectile: 15 dmg
 
-    // methods to use:
-    // FindPathToPoint - A* Search
-    // FollowPathToPoint - includes FindPathToPoint
-    // FollowPathToRandomPoint
-    // GenerateRandomPoint
-    // StopTank
-    // StartTank
-    // FaceTurretToPoint
-    // ResetTurret
-    // FireAtPoint
+    // store ALL currently visible 
+    public Dictionary<GameObject, float> enemyTanksFound = new();
+    public Dictionary<GameObject, float> consumablesFound = new();
+    public Dictionary<GameObject, float> enemyBasesFound = new();
 
-    // presentation - show testing
-
-    //store ALL currently visible 
-    public Dictionary<GameObject, float> enemyTanksFound = new Dictionary<GameObject, float>();
-    public Dictionary<GameObject, float> consumablesFound = new Dictionary<GameObject, float>();
-    public Dictionary<GameObject, float> enemyBasesFound = new Dictionary<GameObject, float>();
-
-    //store ONE from ALL currently visible
+    // store ONE from ALL currently visible
     public GameObject enemyTankPosition;
     public GameObject consumablePosition;
     public GameObject enemyBasePosition;
 
     // timer
-    float t;
+    private float t;
 
     // store facts and rules
-    public Dictionary<string, bool> stats = new Dictionary<string, bool>();
-    public R_Rules rules = new R_Rules();
+    public Dictionary<string, bool> stats = new();
+    public R_Rules rules = new();
+
+    private void Awake()
+    {
+        InitialiseStateMachine();
+    }
 
     // AITankStart() used instead of Start()
     public override void AITankStart()
     {
-        // ADD FACTS
+        // add facts
         stats.Add("lowHealth", false);
-        stats.Add("searchState", false);
-        stats.Add("fleeState", false);
+        stats.Add("lowFuel", false);
+        stats.Add("noAmmo", false);
+        stats.Add("targetSpotted", false);
+        stats.Add("targetReached", false);
+        stats.Add("targetEscaped", false);
+        stats.Add("searchState", true);
         stats.Add("chaseState", false);
+        stats.Add("fleeState", false);
         stats.Add("attackState", false);
 
-        // ADD RULES
-        rules.AddRule(new R_Rule("attackState", "lowHealth", typeof(R_SearchState), R_Rule.Predicate.AND));
+        // add rules
+        rules.AddRule(new R_Rule("chaseState", "targetReached", typeof(R_AttackState), R_Rule.Predicate.AND));
+        rules.AddRule(new R_Rule("chaseState", "lowHealth", typeof(R_FleeState), R_Rule.Predicate.AND));
+        rules.AddRule(new R_Rule("chaseState", "noAmmo", typeof(R_FleeState), R_Rule.Predicate.AND));
+        rules.AddRule(new R_Rule("attackState", "lowHealth", typeof(R_FleeState), R_Rule.Predicate.AND));
+        rules.AddRule(new R_Rule("attackState", "noAmmo", typeof(R_FleeState), R_Rule.Predicate.AND));
+        rules.AddRule(new R_Rule("attackState", "targetEscaped", typeof(R_SearchState), R_Rule.Predicate.AND));
+        rules.AddRule(new R_Rule("searchState", "targetSpotted", typeof(R_ChaseState), R_Rule.Predicate.AND));
+        rules.AddRule(new R_Rule("fleeState", "targetEscaped", typeof(R_SearchState), R_Rule.Predicate.AND));
+        rules.AddRule(new R_Rule("chaseState", "targetEscaped", typeof(R_SearchState), R_Rule.Predicate.AND));
     }
 
     // AITankUpdate() in place of Update()
     public override void AITankUpdate()
     {
-        // update all currently visible
+        // update all currently visible enemies, consumables and bases
         enemyTanksFound = VisibleEnemyTanks;
         consumablesFound = VisibleConsumables;
         enemyBasesFound = VisibleEnemyBases;
 
-        // TODO: get health and ammo just to prevent enemies
-        // TODO: keep tank 26 away from enemy
-        // TODO: circle enemy
-        // TODO: fight if ammo > 0, tank.hp > enemyTank.hp, or if hp == hp, hp > 35
-        // TODO: fire without delay + stopping?
-        // TODO: predictive shooting
-
-        // check for enemy tank found
+        // check for enemies, consumables and bases found
         enemyTankPosition = (enemyTanksFound.Count > 0) ? enemyTanksFound.First().Key : null;
-        // set enemyTankPosition to closest
-        if (enemyTanksFound.Count > 1)
-        {
-            foreach (GameObject enemyTank in enemyTanksFound.Keys)
-            {
-                if (Vector3.Distance(transform.position, enemyTankPosition.transform.position) > Vector3.Distance(transform.position, enemyTank.transform.position))
-                    enemyTankPosition = enemyTank;
-            }
-        }
-        // check for consumables found
         consumablePosition = (consumablesFound.Count > 0) ? consumablesFound.First().Key : null;
-        // set consumablePosition to closest
-        if (consumablesFound.Count > 1)
-        {
-            foreach (GameObject consumable in consumablesFound.Keys)
-            {
-                if (Vector3.Distance(transform.position, consumablePosition.transform.position) > Vector3.Distance(transform.position, consumable.transform.position))
-                    enemyTankPosition = consumable;
-            }
-        }
-        // check for enemy bases found
         enemyBasePosition = (enemyBasesFound.Count > 0) ? enemyBasesFound.First().Key : null;
-        // set enemyBasePosition to closest
-        if (enemyBasesFound.Count > 1)
-        {
-            foreach (GameObject enemyBase in enemyBasesFound.Keys)
-            {
-                if (Vector3.Distance(transform.position, enemyBasePosition.transform.position) > Vector3.Distance(transform.position, enemyBase.transform.position))
-                    enemyBasePosition = enemyBase;
-            }
-        }
-        // if tank in range, attack or fall back
+
+        // set facts
+        stats["lowHealth"] = TankCurrentHealth < 35f;
+        stats["lowFuel"] = TankCurrentFuel < 20f;
+        stats["noAmmo"] = TankCurrentAmmo == 0f;
+        stats["targetSpotted"] = enemyTankPosition != null || consumablePosition != null || enemyBasePosition != null;
+        stats["targetEscaped"] = !stats["targetSpotted"];
+        stats["targetReached"] = false;
+        if (!stats["targetSpotted"]) return;
         if (enemyTankPosition != null)
-        {
-            // move and shoot
-            if (Vector3.Distance(transform.position, enemyTankPosition.transform.position) < 25f)
-                Shoot();
-            else if (TankCurrentHealth <= 10) Fallback();
-            else Follow();
-        }
+            stats["targetReached"] = Vector3.Distance(transform.position, enemyTankPosition.transform.position) < 25f;
         else if (consumablePosition != null)
-        {
-            Consume();
-        }
+            stats["targetReached"] = Vector3.Distance(transform.position, consumablePosition.transform.position) < 0f;
         else if (enemyBasePosition != null)
+            stats["targetReached"] = Vector3.Distance(transform.position, enemyBasePosition.transform.position) < 25f;
+    }
+
+    // add states to dictionary
+    protected void InitialiseStateMachine()
+    {
+        Dictionary<Type, R_BaseState> states = new()
         {
-            AttackBase();
-        }
-        else
-        {
-            Random();
-        }
+            { typeof(R_SearchState), new R_SearchState(this) },
+            { typeof(R_ChaseState), new R_ChaseState(this) },
+            { typeof(R_FleeState), new R_FleeState(this) },
+            { typeof(R_AttackState), new R_AttackState(this) }
+        };
+
+        GetComponent<R_StateMachine>().SetStates(states);
     }
 
-    // State Machines
-    private void Shoot()
+    public void Search()
     {
-        // TODO: only shoot when aimed
-        // TODO: find shooting distance and replace in if statement
-        // get closer to target and fire if in range
-        TurretFireAtPoint(enemyTankPosition);
-    }
-
-    private void Follow()
-    {
-        FollowPathToWorldPoint(enemyTankPosition, 1f);
-    }
-
-    private void Fallback() { }
-
-    private void Consume()
-    {
-        FollowPathToWorldPoint(consumablePosition, 1f);
+        TurretReset();
+        FollowPathToRandomWorldPoint(0.7f);
         t += Time.deltaTime;
-        // TODO: decrease t before generating point
-        if (t > 10)
-        {
-            GenerateRandomPoint();
-            t = 0;
-        }
-    }
-
-    private void AttackBase()
-    {
-        // go close to it and fire
-        if (Vector3.Distance(transform.position, enemyBasePosition.transform.position) < 25f)
-            TurretFireAtPoint(enemyBasePosition);
-        else
-            FollowPathToWorldPoint(enemyBasePosition, 1f);
-    }
-
-    private void Defend() { }
-
-    private void Random()
-    {
-        // searching
-        enemyTankPosition = null;
-        consumablePosition = null;
-        enemyBasePosition = null;
-        FollowPathToRandomWorldPoint(1f);
-        t += Time.deltaTime;
-        // TODO: decrease t before generating point
         if (t > 10)
         {
             GenerateNewRandomWorldPoint();
             t = 0;
         }
+    }
+
+    public void Chase()
+    {
+        GameObject pos;
+        float normalisedSpeed;
+        if (enemyTankPosition != null)
+        {
+            pos = enemyTankPosition;
+            normalisedSpeed = 1f;
+        }
+        else if (consumablePosition != null)
+        {
+            pos = consumablePosition;
+            normalisedSpeed = 0.7f;
+        }
+        else if (enemyBasePosition != null)
+        {
+            pos = enemyBasePosition;
+            normalisedSpeed = 0.5f;
+        }
+        else return;
+        FollowPathToWorldPoint(pos, normalisedSpeed);
+        TurretFaceWorldPoint(pos);
+    }
+
+    public void Flee()
+    {
+        // TODO: implement flee function
+        Search();
+    }
+
+    public void Attack()
+    {
+        if (enemyTankPosition != null)
+        {
+            TurretFireAtPoint(enemyTankPosition);
+            TankGo();
+        }
+        else if (enemyBasePosition != null)
+            TurretFireAtPoint(enemyBasePosition);
     }
 
     // AIOnCollisionEnter() in place of OnCollisionEnter()

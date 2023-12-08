@@ -1,5 +1,4 @@
-using System.Collections;
-using System.Collections.Generic;
+using System;
 using UnityEngine;
 
 public class R_AttackState : R_BaseState
@@ -16,13 +15,6 @@ public class R_AttackState : R_BaseState
     {
         tank.stats["attackState"] = true;
 
-        // tank.GetComponent<Rigidbody>().isKinematic = true;
-
-        /*if (!tank.shootParticles.isPlaying)
-        {
-            tank.shootParticles.Play();
-        }*/
-
         return null;
     }
 
@@ -36,18 +28,18 @@ public class R_AttackState : R_BaseState
 
     public override Type StateUpdate()
     {
-        // tank.AttackTarget();
+        tank.Attack();
 
         time += Time.deltaTime;
 
         if (time > 1f)
         {
-            if (tank.stats["lowHealth"])
+            if (tank.stats["lowHealth"] || tank.stats["noAmmo"])
                 return typeof(R_FleeState);
-            if (tank.stats["targetReached"])
-                return typeof(R_AttackState);
-            else
+            if (tank.stats["targetEscaped"])
                 return typeof(R_SearchState);
+            else
+                return typeof(R_AttackState);
         }
 
         return null;
