@@ -23,6 +23,9 @@ public class R_StateMachine : MonoBehaviour
     {
         this.states = states;
     }
+    
+   
+    
 
     private void Update()
     {
@@ -39,6 +42,8 @@ public class R_StateMachine : MonoBehaviour
             }
         }
     }
+
+
 
     private void SwitchToState(Type nextState)
     {

@@ -20,9 +20,13 @@ public class R_SmartTank : AITank
     public GameObject enemyTankPosition;
     public GameObject consumablePosition;
     public GameObject enemyBasePosition;
+    public GameObject teamBasePos;
+    
 
     // timer
-    private float t;
+    private float secs;
+
+    int tankDir = 1;
 
     // store facts and rules
     public Dictionary<string, bool> stats = new();
@@ -43,7 +47,8 @@ public class R_SmartTank : AITank
         stats.Add("targetSpotted", false);
         stats.Add("targetReached", false);
         stats.Add("targetEscaped", false);
-        stats.Add("searchState", true);
+        stats.Add("campState", true);
+        stats.Add("searchState", false);
         stats.Add("chaseState", false);
         stats.Add("fleeState", false);
         stats.Add("attackState", false);
@@ -87,6 +92,10 @@ public class R_SmartTank : AITank
             stats["targetReached"] = Vector3.Distance(transform.position, consumablePosition.transform.position) < 0f;
         else if (enemyBasePosition != null)
             stats["targetReached"] = Vector3.Distance(transform.position, enemyBasePosition.transform.position) < 25f;
+
+          
+        
+
     }
 
     // add states to dictionary
@@ -94,66 +103,111 @@ public class R_SmartTank : AITank
     {
         Dictionary<Type, R_BaseState> states = new()
         {
-            { typeof(R_SearchState), new R_SearchState(this) },
+            { typeof(R_CampState), new R_CampState(this) },
             { typeof(R_ChaseState), new R_ChaseState(this) },
             { typeof(R_FleeState), new R_FleeState(this) },
-            { typeof(R_AttackState), new R_AttackState(this) }
+            { typeof(R_AttackState), new R_AttackState(this) },
+            { typeof(R_SearchState), new R_SearchState(this) }
         };
 
         GetComponent<R_StateMachine>().SetStates(states);
     }
 
+    public void Camp()
+    {
+        float strafeSpeed = 0.4f;
+        FollowPathToWorldPoint(teamBasePos, strafeSpeed);
+        secs += Time.deltaTime;
+        if (secs > 1)
+        {
+            switch (tankDir)
+            {
+                case 1:
+                    teamBasePos.transform.Translate(9.5f, 0.0f, 0.0f);
+                    if (teamBasePos.transform.position.x >= 90.20f)
+                    {
+                        tankDir = 2;
+                    }
+                    break;
+                case 2:
+                    teamBasePos.transform.Translate(-9.5f, 0.0f, 0.0f);
+                    if (teamBasePos.transform.position.x <= 0.0f)
+                    {
+                        tankDir = 1;
+                    };
+                    break;
+            }
+            secs = 0;
+        }
+        if (secs > 20)
+        {
+            Search();
+        }
+    }
+
+
+
     public void Search()
     {
         TurretReset();
-        FollowPathToRandomWorldPoint(0.7f);
-        t += Time.deltaTime;
-        if (t > 10)
-        {
-            GenerateNewRandomWorldPoint();
-            t = 0;
-        }
+         FollowPathToRandomWorldPoint(0.7f);
+         secs += Time.deltaTime;
+         if (secs > 10)
+         {
+             GenerateNewRandomWorldPoint();
+             secs = 0;
+         }
+      
     }
 
     public void Chase()
     {
-        GameObject pos;
-        float normalisedSpeed;
-        if (enemyTankPosition != null)
-        {
-            pos = enemyTankPosition;
-            normalisedSpeed = 1f;
-        }
-        else if (consumablePosition != null)
-        {
-            pos = consumablePosition;
-            normalisedSpeed = 0.7f;
-        }
-        else if (enemyBasePosition != null)
-        {
-            pos = enemyBasePosition;
-            normalisedSpeed = 0.5f;
-        }
-        else return;
-        FollowPathToWorldPoint(pos, normalisedSpeed);
-        TurretFaceWorldPoint(pos);
+         GameObject pos;
+         float normalisedSpeed;
+         if (enemyTankPosition != null)
+         {
+             pos = enemyTankPosition;
+             normalisedSpeed = 1f;
+         }
+         else if (consumablePosition != null)
+         {
+             pos = consumablePosition;
+             normalisedSpeed = 0.7f;
+         }
+         else if (enemyBasePosition != null)
+         {
+             pos = enemyBasePosition;
+             normalisedSpeed = 0.5f;
+         }
+         else return;
+         FollowPathToWorldPoint(pos, normalisedSpeed);
+         TurretFaceWorldPoint(pos);
+      
     }
 
     public void Flee()
     {
-        // TODO: implement flee function
-        Search();
+        GameObject enemyPos = enemyTankPosition;
+        GameObject runPos = null;
+
+        Vector3 vec = enemyPos.transform.position - transform.position;
+
+        runPos.transform.position = vec.normalized;
+
+        FollowPathToWorldPoint(runPos, 1.0f);
+        TurretFaceWorldPoint(enemyPos);
     }
 
     public void Attack()
     {
-        if (enemyTankPosition != null)
-        {
-            TurretFireAtPoint(enemyTankPosition);
-            TankGo();
-        }
-        else if (enemyBasePosition != null)
-            TurretFireAtPoint(enemyBasePosition);
+         if (enemyTankPosition != null)
+         {
+             TurretFireAtPoint(enemyTankPosition);
+             TankGo();
+         }
+         else if (enemyBasePosition != null)
+             TurretFireAtPoint(enemyBasePosition);
+        
     }
 
     // AIOnCollisionEnter() in place of OnCollisionEnter()
