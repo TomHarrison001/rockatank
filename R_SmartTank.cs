@@ -81,7 +81,6 @@ public class R_SmartTank : AITank
         targetReachedCheck = new R_BTAction(TargetReachedCheck);
         targetEscapedCheck = new R_BTAction(TargetEscapedCheck);
     }
-}
 
     // AITankUpdate() in place of Update()
     public override void AITankUpdate()
