@@ -58,6 +58,7 @@ public class R_SmartTank : AITank
         stats.Add("targetSpotted", false);
         stats.Add("targetReached", false);
         stats.Add("targetEscaped", false);
+        stats.Add("targetOutOfRange", false);
         stats.Add("searchState", true);
         stats.Add("chaseState", false);
         stats.Add("fleeState", false);
@@ -66,12 +67,13 @@ public class R_SmartTank : AITank
         // add rules
         rules.AddRule(new R_Rule("searchState", "targetSpotted", typeof(R_ChaseState), R_Rule.Predicate.AND));
         rules.AddRule(new R_Rule("chaseState", "targetReached", typeof(R_AttackState), R_Rule.Predicate.AND));
+        rules.AddRule(new R_Rule("chaseState", "targetEscaped", typeof(R_SearchState), R_Rule.Predicate.AND));
+        rules.AddRule(new R_Rule("attackState", "targetOutOfRange", typeof(R_ChaseState), R_Rule.Predicate.AND));
         rules.AddRule(new R_Rule("attackState", "lowHealth", typeof(R_FleeState), R_Rule.Predicate.AND));
         rules.AddRule(new R_Rule("attackState", "lowFuel", typeof(R_FleeState), R_Rule.Predicate.AND));
+        rules.AddRule(new R_Rule("attackState", "targetEscaped", typeof(R_SearchState), R_Rule.Predicate.AND));
         rules.AddRule(new R_Rule("attackState", "noAmmo", typeof(R_FleeState), R_Rule.Predicate.AND));
         rules.AddRule(new R_Rule("fleeState", "targetEscaped", typeof(R_SearchState), R_Rule.Predicate.AND));
-        rules.AddRule(new R_Rule("attackState", "targetEscaped", typeof(R_ChaseState), R_Rule.Predicate.AND));
-        rules.AddRule(new R_Rule("chaseState", "targetEscaped", typeof(R_SearchState), R_Rule.Predicate.AND));
 
         // add BT Actions
         healthCheck = new R_BTAction(HealthCheck);
@@ -102,13 +104,23 @@ public class R_SmartTank : AITank
         stats["targetSpotted"] = enemyTankPosition != null || consumablePosition != null || enemyBasePosition != null;
         stats["targetEscaped"] = !stats["targetSpotted"];
         stats["targetReached"] = false;
+        stats["targetOutOfRange"] = false;
         if (stats["targetEscaped"]) return;
         if (enemyTankPosition != null)
+        {
             stats["targetReached"] = Vector3.Distance(transform.position, enemyTankPosition.transform.position) < 25f;
+            stats["targetOutOfRange"] = !stats["targetReached"];
+        }
         else if (consumablePosition != null)
+        {
             stats["targetReached"] = Vector3.Distance(transform.position, consumablePosition.transform.position) < 0f;
+            stats["targetOutOfRange"] = !stats["targetReached"];
+        }
         else if (enemyBasePosition != null)
+        {
             stats["targetReached"] = Vector3.Distance(transform.position, enemyBasePosition.transform.position) < 25f;
+            stats["targetOutOfRange"] = !stats["targetReached"];
+        }
     }
 
     // add states to dictionary
