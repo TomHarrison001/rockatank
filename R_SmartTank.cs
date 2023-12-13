@@ -2,11 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
-<<<<<<< HEAD
 using static R_BTBaseNode;
-=======
-using static BTBaseNode;
->>>>>>> 11ccf5284745d016ad9c2942d6bfd3c93f791adc
 
 // require R_StateMachine
 [RequireComponent(typeof(R_StateMachine))]
@@ -36,21 +32,12 @@ public class R_SmartTank : AITank
     public R_Rules rules = new();
 
     // store behavioural tree data (BT)
-<<<<<<< HEAD
     public R_BTAction healthCheck;
     public R_BTAction fuelCheck;
     public R_BTAction ammoCheck;
     public R_BTAction targetSpottedCheck;
     public R_BTAction targetReachedCheck;
     public R_BTAction targetEscapedCheck;
-=======
-    public BTAction healthCheck;
-    public BTAction fuelCheck;
-    public BTAction ammoCheck;
-    public BTAction targetSpottedCheck;
-    public BTAction targetReachedCheck;
-    public BTAction targetEscapedCheck;
->>>>>>> 11ccf5284745d016ad9c2942d6bfd3c93f791adc
 
     private void Awake()
     {
@@ -87,7 +74,6 @@ public class R_SmartTank : AITank
         rules.AddRule(new R_Rule("chaseState", "targetEscaped", typeof(R_SearchState), R_Rule.Predicate.AND));
 
         // add BT Actions
-<<<<<<< HEAD
         healthCheck = new R_BTAction(HealthCheck);
         fuelCheck = new R_BTAction(FuelCheck);
         ammoCheck = new R_BTAction(AmmoCheck);
@@ -95,15 +81,7 @@ public class R_SmartTank : AITank
         targetReachedCheck = new R_BTAction(TargetReachedCheck);
         targetEscapedCheck = new R_BTAction(TargetEscapedCheck);
     }
-=======
-        healthCheck = new BTAction(HealthCheck);
-        fuelCheck = new BTAction(FuelCheck);
-        ammoCheck = new BTAction(AmmoCheck);
-        targetSpottedCheck = new BTAction(TargetSpottedCheck);
-        targetReachedCheck = new BTAction(TargetReachedCheck);
-        targetEscapedCheck = new BTAction(TargetEscapedCheck);
 }
->>>>>>> 11ccf5284745d016ad9c2942d6bfd3c93f791adc
 
     // AITankUpdate() in place of Update()
     public override void AITankUpdate()
@@ -204,7 +182,6 @@ public class R_SmartTank : AITank
 
     // BTNodeStates functions
 
-<<<<<<< HEAD
     public R_BTNodeStates HealthCheck()
     {
         if (stats["lowHealth"])
@@ -251,54 +228,6 @@ public class R_SmartTank : AITank
             return R_BTNodeStates.SUCCESS;
         else
             return R_BTNodeStates.FAILURE;
-=======
-    public BTNodeStates HealthCheck()
-    {
-        if (stats["lowHealth"])
-            return BTNodeStates.FAILURE;
-        else
-            return BTNodeStates.SUCCESS;
-    }
-
-    public BTNodeStates FuelCheck()
-    {
-        if (stats["lowFuel"])
-            return BTNodeStates.FAILURE;
-        else
-            return BTNodeStates.SUCCESS;
-    }
-
-    public BTNodeStates AmmoCheck()
-    {
-        if (stats["noAmmo"])
-            return BTNodeStates.FAILURE;
-        else
-            return BTNodeStates.SUCCESS;
-    }
-
-    public BTNodeStates TargetSpottedCheck()
-    {
-        if (stats["targetSpotted"])
-            return BTNodeStates.SUCCESS;
-        else
-            return BTNodeStates.FAILURE;
-    }
-
-    public BTNodeStates TargetReachedCheck()
-    {
-        if (stats["targetReached"])
-            return BTNodeStates.SUCCESS;
-        else
-            return BTNodeStates.FAILURE;
-    }
-
-    public BTNodeStates TargetEscapedCheck()
-    {
-        if (stats["targetEscaped"])
-            return BTNodeStates.SUCCESS;
-        else
-            return BTNodeStates.FAILURE;
->>>>>>> 11ccf5284745d016ad9c2942d6bfd3c93f791adc
     }
 
     /// <summary>
