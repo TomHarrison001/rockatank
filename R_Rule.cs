@@ -21,16 +21,12 @@ public class R_Rule
         bool atecedentABool = stats[atecedentA];
         bool atecedentBBool = stats[atecedentB];
 
-        switch (compare)
+        return compare switch
         {
-            case Predicate.AND:
-                return (atecedentABool && atecedentBBool) ? consequentState : null;
-            case Predicate.OR:
-                return (atecedentABool || atecedentBBool) ? consequentState : null;
-            case Predicate.NAND:
-                return (!atecedentABool && !atecedentBBool) ? consequentState : null;
-            default:
-                return null;
-        }
+            Predicate.AND => (atecedentABool && atecedentBBool) ? consequentState : null,
+            Predicate.OR => (atecedentABool || atecedentBBool) ? consequentState : null,
+            Predicate.NAND => (!atecedentABool && !atecedentBBool) ? consequentState : null,
+            _ => null,
+        };
     }
 }

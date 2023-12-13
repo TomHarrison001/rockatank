@@ -5,6 +5,7 @@ using UnityEngine;
 public class R_FleeState : R_BaseState
 {
     private R_SmartTank tank;
+    private float t;
 
     public R_FleeState(R_SmartTank tank)
     {
@@ -29,6 +30,10 @@ public class R_FleeState : R_BaseState
     {
         tank.Flee();
 
+        t += Time.deltaTime;
+        if (t < 5) return null;
+
+        t = 0;
         foreach (var item in tank.rules.GetRules)
         {
             if (item.CheckRule(tank.stats) != null)

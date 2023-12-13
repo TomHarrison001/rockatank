@@ -7,43 +7,26 @@ public class R_StateMachine : MonoBehaviour
 {
     private Dictionary<Type, R_BaseState> states;
     public R_BaseState currentState;
-    public R_BaseState CurrentState
-    {
-        get
-        {
-            return currentState;
-        }
-        private set
-        {
-            currentState = value;
-        }
-    }
 
     public void SetStates(Dictionary<Type, R_BaseState> states)
     {
         this.states = states;
+        currentState = states.Values.First();
     }
 
     private void Update()
     {
-        if (CurrentState == null)
+        var nextState = currentState.StateUpdate();
+        if (nextState != null && nextState != currentState.GetType())
         {
-            CurrentState = states.Values.First();
-        }
-        else
-        {
-            var nextState = CurrentState.StateUpdate();
-            if (nextState != null && nextState != CurrentState.GetType())
-            {
-                SwitchToState(nextState);
-            }
+            SwitchToState(nextState);
         }
     }
 
     private void SwitchToState(Type nextState)
     {
-        CurrentState.StateExit();
-        CurrentState = states[nextState];
-        CurrentState.StateEnter();
+        currentState.StateExit();
+        currentState = states[nextState];
+        currentState.StateEnter();
     }
 }

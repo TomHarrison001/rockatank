@@ -2,6 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+<<<<<<< HEAD
+using static R_BTBaseNode;
+=======
+using static BTBaseNode;
+>>>>>>> 11ccf5284745d016ad9c2942d6bfd3c93f791adc
 
 // require R_StateMachine
 [RequireComponent(typeof(R_StateMachine))]
@@ -10,6 +15,8 @@ public class R_SmartTank : AITank
 {
     // consumables: hp +25, ammo +3, fuel +30
     // projectile: 15 dmg
+    [SerializeField] private GameObject empty;
+    private GameObject startPos;
 
     // store ALL currently visible 
     public Dictionary<GameObject, float> enemyTanksFound = new();
@@ -24,9 +31,26 @@ public class R_SmartTank : AITank
     // timer
     private float t;
 
-    // store facts and rules
+    // store facts and rules (RBS)
     public Dictionary<string, bool> stats = new();
     public R_Rules rules = new();
+
+    // store behavioural tree data (BT)
+<<<<<<< HEAD
+    public R_BTAction healthCheck;
+    public R_BTAction fuelCheck;
+    public R_BTAction ammoCheck;
+    public R_BTAction targetSpottedCheck;
+    public R_BTAction targetReachedCheck;
+    public R_BTAction targetEscapedCheck;
+=======
+    public BTAction healthCheck;
+    public BTAction fuelCheck;
+    public BTAction ammoCheck;
+    public BTAction targetSpottedCheck;
+    public BTAction targetReachedCheck;
+    public BTAction targetEscapedCheck;
+>>>>>>> 11ccf5284745d016ad9c2942d6bfd3c93f791adc
 
     private void Awake()
     {
@@ -36,6 +60,10 @@ public class R_SmartTank : AITank
     // AITankStart() used instead of Start()
     public override void AITankStart()
     {
+        // set startPos
+        GameObject g = Instantiate(empty, transform.position, Quaternion.identity);
+        g.transform.localScale = Vector3.one;
+
         // add facts
         stats.Add("lowHealth", false);
         stats.Add("lowFuel", false);
@@ -49,16 +77,33 @@ public class R_SmartTank : AITank
         stats.Add("attackState", false);
 
         // add rules
-        rules.AddRule(new R_Rule("chaseState", "targetReached", typeof(R_AttackState), R_Rule.Predicate.AND));
-        rules.AddRule(new R_Rule("chaseState", "lowHealth", typeof(R_FleeState), R_Rule.Predicate.AND));
-        rules.AddRule(new R_Rule("chaseState", "noAmmo", typeof(R_FleeState), R_Rule.Predicate.AND));
-        rules.AddRule(new R_Rule("attackState", "lowHealth", typeof(R_FleeState), R_Rule.Predicate.AND));
-        rules.AddRule(new R_Rule("attackState", "noAmmo", typeof(R_FleeState), R_Rule.Predicate.AND));
-        rules.AddRule(new R_Rule("attackState", "targetEscaped", typeof(R_SearchState), R_Rule.Predicate.AND));
         rules.AddRule(new R_Rule("searchState", "targetSpotted", typeof(R_ChaseState), R_Rule.Predicate.AND));
+        rules.AddRule(new R_Rule("chaseState", "targetReached", typeof(R_AttackState), R_Rule.Predicate.AND));
+        rules.AddRule(new R_Rule("attackState", "lowHealth", typeof(R_FleeState), R_Rule.Predicate.AND));
+        rules.AddRule(new R_Rule("attackState", "lowFuel", typeof(R_FleeState), R_Rule.Predicate.AND));
+        rules.AddRule(new R_Rule("attackState", "noAmmo", typeof(R_FleeState), R_Rule.Predicate.AND));
         rules.AddRule(new R_Rule("fleeState", "targetEscaped", typeof(R_SearchState), R_Rule.Predicate.AND));
+        rules.AddRule(new R_Rule("attackState", "targetEscaped", typeof(R_ChaseState), R_Rule.Predicate.AND));
         rules.AddRule(new R_Rule("chaseState", "targetEscaped", typeof(R_SearchState), R_Rule.Predicate.AND));
+
+        // add BT Actions
+<<<<<<< HEAD
+        healthCheck = new R_BTAction(HealthCheck);
+        fuelCheck = new R_BTAction(FuelCheck);
+        ammoCheck = new R_BTAction(AmmoCheck);
+        targetSpottedCheck = new R_BTAction(TargetSpottedCheck);
+        targetReachedCheck = new R_BTAction(TargetReachedCheck);
+        targetEscapedCheck = new R_BTAction(TargetEscapedCheck);
     }
+=======
+        healthCheck = new BTAction(HealthCheck);
+        fuelCheck = new BTAction(FuelCheck);
+        ammoCheck = new BTAction(AmmoCheck);
+        targetSpottedCheck = new BTAction(TargetSpottedCheck);
+        targetReachedCheck = new BTAction(TargetReachedCheck);
+        targetEscapedCheck = new BTAction(TargetEscapedCheck);
+}
+>>>>>>> 11ccf5284745d016ad9c2942d6bfd3c93f791adc
 
     // AITankUpdate() in place of Update()
     public override void AITankUpdate()
@@ -80,7 +125,7 @@ public class R_SmartTank : AITank
         stats["targetSpotted"] = enemyTankPosition != null || consumablePosition != null || enemyBasePosition != null;
         stats["targetEscaped"] = !stats["targetSpotted"];
         stats["targetReached"] = false;
-        if (!stats["targetSpotted"]) return;
+        if (stats["targetEscaped"]) return;
         if (enemyTankPosition != null)
             stats["targetReached"] = Vector3.Distance(transform.position, enemyTankPosition.transform.position) < 25f;
         else if (consumablePosition != null)
@@ -105,10 +150,9 @@ public class R_SmartTank : AITank
 
     public void Search()
     {
-        TurretReset();
         FollowPathToRandomWorldPoint(0.7f);
         t += Time.deltaTime;
-        if (t > 10)
+        if (t > 5)
         {
             GenerateNewRandomWorldPoint();
             t = 0;
@@ -141,8 +185,7 @@ public class R_SmartTank : AITank
 
     public void Flee()
     {
-        // TODO: implement flee function
-        Search();
+        FollowPathToWorldPoint(startPos, 1f);
     }
 
     public void Attack()
@@ -158,6 +201,105 @@ public class R_SmartTank : AITank
 
     // AIOnCollisionEnter() in place of OnCollisionEnter()
     public override void AIOnCollisionEnter(Collision collision) { }
+
+    // BTNodeStates functions
+
+<<<<<<< HEAD
+    public R_BTNodeStates HealthCheck()
+    {
+        if (stats["lowHealth"])
+            return R_BTNodeStates.FAILURE;
+        else
+            return R_BTNodeStates.SUCCESS;
+    }
+
+    public R_BTNodeStates FuelCheck()
+    {
+        if (stats["lowFuel"])
+            return R_BTNodeStates.FAILURE;
+        else
+            return R_BTNodeStates.SUCCESS;
+    }
+
+    public R_BTNodeStates AmmoCheck()
+    {
+        if (stats["noAmmo"])
+            return R_BTNodeStates.FAILURE;
+        else
+            return R_BTNodeStates.SUCCESS;
+    }
+
+    public R_BTNodeStates TargetSpottedCheck()
+    {
+        if (stats["targetSpotted"])
+            return R_BTNodeStates.SUCCESS;
+        else
+            return R_BTNodeStates.FAILURE;
+    }
+
+    public R_BTNodeStates TargetReachedCheck()
+    {
+        if (stats["targetReached"])
+            return R_BTNodeStates.SUCCESS;
+        else
+            return R_BTNodeStates.FAILURE;
+    }
+
+    public R_BTNodeStates TargetEscapedCheck()
+    {
+        if (stats["targetEscaped"])
+            return R_BTNodeStates.SUCCESS;
+        else
+            return R_BTNodeStates.FAILURE;
+=======
+    public BTNodeStates HealthCheck()
+    {
+        if (stats["lowHealth"])
+            return BTNodeStates.FAILURE;
+        else
+            return BTNodeStates.SUCCESS;
+    }
+
+    public BTNodeStates FuelCheck()
+    {
+        if (stats["lowFuel"])
+            return BTNodeStates.FAILURE;
+        else
+            return BTNodeStates.SUCCESS;
+    }
+
+    public BTNodeStates AmmoCheck()
+    {
+        if (stats["noAmmo"])
+            return BTNodeStates.FAILURE;
+        else
+            return BTNodeStates.SUCCESS;
+    }
+
+    public BTNodeStates TargetSpottedCheck()
+    {
+        if (stats["targetSpotted"])
+            return BTNodeStates.SUCCESS;
+        else
+            return BTNodeStates.FAILURE;
+    }
+
+    public BTNodeStates TargetReachedCheck()
+    {
+        if (stats["targetReached"])
+            return BTNodeStates.SUCCESS;
+        else
+            return BTNodeStates.FAILURE;
+    }
+
+    public BTNodeStates TargetEscapedCheck()
+    {
+        if (stats["targetEscaped"])
+            return BTNodeStates.SUCCESS;
+        else
+            return BTNodeStates.FAILURE;
+>>>>>>> 11ccf5284745d016ad9c2942d6bfd3c93f791adc
+    }
 
     /// <summary>
     /// Generate a path from current position to pointInWorld (GameObject)
