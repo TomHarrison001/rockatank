@@ -12,7 +12,7 @@ public class R_SmartTank : AITank
     // consumables: hp +25, ammo +3, fuel +30
     // projectile: 15 dmg
     [SerializeField] private GameObject empty;
-    private GameObject startPos;
+    private int tankDir = 1;
 
     // store ALL currently visible 
     public Dictionary<GameObject, float> enemyTanksFound = new();
@@ -23,9 +23,10 @@ public class R_SmartTank : AITank
     public GameObject enemyTankPosition;
     public GameObject consumablePosition;
     public GameObject enemyBasePosition;
+    public GameObject teamBasePos;
 
     // timer
-    private float t;
+    private float t, sec;
 
     // store facts and rules (RBS)
     public Dictionary<string, bool> stats = new();
@@ -47,10 +48,6 @@ public class R_SmartTank : AITank
     // AITankStart() used instead of Start()
     public override void AITankStart()
     {
-        // set startPos
-        GameObject g = Instantiate(empty, transform.position, Quaternion.identity);
-        g.transform.localScale = Vector3.one;
-
         // add facts
         stats.Add("lowHealth", false);
         stats.Add("lowFuel", false);
@@ -59,22 +56,29 @@ public class R_SmartTank : AITank
         stats.Add("targetReached", false);
         stats.Add("targetEscaped", false);
         stats.Add("targetOutOfRange", false);
-        stats.Add("searchState", true);
+        stats.Add("searchState", false);
         stats.Add("chaseState", false);
         stats.Add("fleeState", false);
         stats.Add("attackState", false);
+        stats.Add("campState", true);
 
         // add rules
-        rules.AddRule(new R_Rule("searchState", "targetSpotted", typeof(R_ChaseState), R_Rule.Predicate.AND));
+        //chase
         rules.AddRule(new R_Rule("chaseState", "targetReached", typeof(R_AttackState), R_Rule.Predicate.AND));
         rules.AddRule(new R_Rule("chaseState", "targetEscaped", typeof(R_SearchState), R_Rule.Predicate.AND));
+        //camp
+        rules.AddRule(new R_Rule("campState", "targetSpotted", typeof(R_ChaseState), R_Rule.Predicate.AND));
+        //search
+        rules.AddRule(new R_Rule("searchState", "targetSpotted", typeof(R_ChaseState), R_Rule.Predicate.AND));
+        //attack
         rules.AddRule(new R_Rule("attackState", "targetOutOfRange", typeof(R_ChaseState), R_Rule.Predicate.AND));
         rules.AddRule(new R_Rule("attackState", "lowHealth", typeof(R_FleeState), R_Rule.Predicate.AND));
         rules.AddRule(new R_Rule("attackState", "lowFuel", typeof(R_FleeState), R_Rule.Predicate.AND));
         rules.AddRule(new R_Rule("attackState", "targetEscaped", typeof(R_SearchState), R_Rule.Predicate.AND));
         rules.AddRule(new R_Rule("attackState", "noAmmo", typeof(R_FleeState), R_Rule.Predicate.AND));
-        rules.AddRule(new R_Rule("fleeState", "targetEscaped", typeof(R_SearchState), R_Rule.Predicate.AND));
-
+        //flee
+        rules.AddRule(new R_Rule("fleeState", "targetEscaped", typeof(R_CampState), R_Rule.Predicate.AND));
+       
         // add BT Actions
         healthCheck = new R_BTAction(HealthCheck);
         fuelCheck = new R_BTAction(FuelCheck);
@@ -98,7 +102,7 @@ public class R_SmartTank : AITank
         enemyBasePosition = (enemyBasesFound.Count > 0) ? enemyBasesFound.First().Key : null;
 
         // set facts
-        stats["lowHealth"] = TankCurrentHealth < 35f;
+        stats["lowHealth"] = TankCurrentHealth < 50f;
         stats["lowFuel"] = TankCurrentFuel < 20f;
         stats["noAmmo"] = TankCurrentAmmo == 0f;
         stats["targetSpotted"] = enemyTankPosition != null || consumablePosition != null || enemyBasePosition != null;
@@ -108,7 +112,7 @@ public class R_SmartTank : AITank
         if (stats["targetEscaped"]) return;
         if (enemyTankPosition != null)
         {
-            stats["targetReached"] = Vector3.Distance(transform.position, enemyTankPosition.transform.position) < 25f;
+            stats["targetReached"] = Vector3.Distance(transform.position, enemyTankPosition.transform.position) < 40f;
             stats["targetOutOfRange"] = !stats["targetReached"];
         }
         else if (consumablePosition != null)
@@ -131,11 +135,43 @@ public class R_SmartTank : AITank
             { typeof(R_SearchState), new R_SearchState(this) },
             { typeof(R_ChaseState), new R_ChaseState(this) },
             { typeof(R_FleeState), new R_FleeState(this) },
-            { typeof(R_AttackState), new R_AttackState(this) }
+            { typeof(R_AttackState), new R_AttackState(this) },
+            { typeof(R_CampState), new R_CampState(this) }
         };
+
 
         GetComponent<R_StateMachine>().SetStates(states);
     }
+
+    public void Camp()
+    {
+        float strafeSpeed = 0.4f;
+        FollowPathToWorldPoint(teamBasePos, strafeSpeed);
+        sec += Time.deltaTime;
+        if (sec > 1)
+        {
+            switch (tankDir)
+            {
+                case 1:
+                    teamBasePos.transform.Translate(9.5f, 0.0f, 0.0f);
+                    if (teamBasePos.transform.position.x >= 90.20f)
+                    {
+                        tankDir = 2;
+                    }
+                    break;
+                case 2:
+                    teamBasePos.transform.Translate(-9.5f, 0.0f, 0.0f);
+                    if (teamBasePos.transform.position.x <= 0.0f)
+                    {
+                        tankDir = 1;
+                    };
+                    break;
+            }
+            sec = 0;
+        }
+    }
+
+
 
     public void Search()
     {
@@ -174,15 +210,31 @@ public class R_SmartTank : AITank
 
     public void Flee()
     {
-        FollowPathToWorldPoint(startPos, 1f);
+        if (enemyTankPosition != null)
+        {
+            GameObject runPos = Instantiate(empty, transform.position, Quaternion.identity);
+            Vector3 vec = transform.position - enemyTankPosition.transform.position;
+            runPos.transform.position = transform.position + vec + new Vector3(10.0f, 0.0f, 0.0f); ;
+
+
+            TurretFaceWorldPoint(enemyTankPosition);
+            FollowPathToWorldPoint(runPos, 1.0f);
+        }
+        else
+            Camp();
     }
 
     public void Attack()
     {
         if (enemyTankPosition != null)
         {
+            GameObject strafePos = Instantiate(empty, transform.position, Quaternion.identity);
+            strafePos.transform.Translate(6.0f, 0, 0);
+            FollowPathToWorldPoint(strafePos, 0.7f);
+            TurretFaceWorldPoint(enemyTankPosition);
             TurretFireAtPoint(enemyTankPosition);
             TankGo();
+            Destroy(strafePos);
         }
         else if (enemyBasePosition != null)
             TurretFireAtPoint(enemyBasePosition);
