@@ -10,6 +10,7 @@ public class R_SmartTank : AITank
 {
     // consumables: hp +25, ammo +3, fuel +30
     // projectile: 15 dmg
+    [SerializeField] private GameObject empty;
 
     // store ALL currently visible 
     public Dictionary<GameObject, float> enemyTanksFound = new();
@@ -25,6 +26,7 @@ public class R_SmartTank : AITank
 
     // timer
     private float secs;
+    private float secsCampExit;
 
     int tankDir = 1;
 
@@ -47,8 +49,8 @@ public class R_SmartTank : AITank
         stats.Add("targetSpotted", false);
         stats.Add("targetReached", false);
         stats.Add("targetEscaped", false);
-        stats.Add("campState", true);
-        stats.Add("searchState", false);
+        stats.Add("campState", false);
+        stats.Add("searchState", true);
         stats.Add("chaseState", false);
         stats.Add("fleeState", false);
         stats.Add("attackState", false);
@@ -79,7 +81,7 @@ public class R_SmartTank : AITank
         enemyBasePosition = (enemyBasesFound.Count > 0) ? enemyBasesFound.First().Key : null;
 
         // set facts
-        stats["lowHealth"] = TankCurrentHealth < 35f;
+        stats["lowHealth"] = TankCurrentHealth < 90f;
         stats["lowFuel"] = TankCurrentFuel < 20f;
         stats["noAmmo"] = TankCurrentAmmo == 0f;
         stats["targetSpotted"] = enemyTankPosition != null || consumablePosition != null || enemyBasePosition != null;
@@ -118,6 +120,7 @@ public class R_SmartTank : AITank
         float strafeSpeed = 0.4f;
         FollowPathToWorldPoint(teamBasePos, strafeSpeed);
         secs += Time.deltaTime;
+        secsCampExit += Time.deltaTime;
         if (secs > 1)
         {
             switch (tankDir)
@@ -139,9 +142,10 @@ public class R_SmartTank : AITank
             }
             secs = 0;
         }
-        if (secs > 20)
+        if (secsCampExit > 20)
         {
             Search();
+            secsCampExit = 0;
         }
     }
 
@@ -187,15 +191,16 @@ public class R_SmartTank : AITank
 
     public void Flee()
     {
-        GameObject enemyPos = enemyTankPosition;
-        GameObject runPos = null;
+        if (enemyTankPosition == null) return;
+        GameObject runPos = Instantiate(empty, transform.position, Quaternion.identity);
+        Vector3 vec = enemyTankPosition.transform.position - transform.position;
 
-        Vector3 vec = enemyPos.transform.position - transform.position;
-
-        runPos.transform.position = vec.normalized;
+        runPos.transform.position = vec;
 
         FollowPathToWorldPoint(runPos, 1.0f);
-        TurretFaceWorldPoint(enemyPos);
+        TurretFaceWorldPoint(enemyTankPosition);
+        print(vec);
+        Destroy(runPos);
     }
 
     public void Attack()
@@ -206,8 +211,7 @@ public class R_SmartTank : AITank
              TankGo();
          }
          else if (enemyBasePosition != null)
-             TurretFireAtPoint(enemyBasePosition);
-        
+             TurretFireAtPoint(enemyBasePosition); 
     }
 
     // AIOnCollisionEnter() in place of OnCollisionEnter()

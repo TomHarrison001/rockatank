@@ -47,6 +47,7 @@ public class R_StateMachine : MonoBehaviour
 
     private void SwitchToState(Type nextState)
     {
+        print(nextState);
         CurrentState.StateExit();
         CurrentState = states[nextState];
         CurrentState.StateEnter();
