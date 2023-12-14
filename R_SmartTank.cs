@@ -38,6 +38,7 @@ public class R_SmartTank : AITank
     public R_BTAction targetSpottedCheck;
     public R_BTAction targetReachedCheck;
     public R_BTAction targetEscapedCheck;
+    public R_BTSequence regenSequence;
 
     private void Awake()
     {
@@ -85,6 +86,7 @@ public class R_SmartTank : AITank
         targetSpottedCheck = new R_BTAction(TargetSpottedCheck);
         targetReachedCheck = new R_BTAction(TargetReachedCheck);
         targetEscapedCheck = new R_BTAction(TargetEscapedCheck);
+        regenSequence = new R_BTSequence(new List<R_BTBaseNode> { healthCheck, ammoCheck, fuelCheck });
     }
 
     // throw error if prefab not used
@@ -117,7 +119,8 @@ public class R_SmartTank : AITank
         if (stats["targetEscaped"]) return;
         if (enemyTankPosition != null)
         {
-            stats["targetReached"] = Vector3.Distance(transform.position, enemyTankPosition.transform.position) < 35f;
+            stats["targetReached"] = Vector3.Distance(transform.position, enemyTankPosition.transform.position) < 35f &&
+                                     Vector3.Distance(transform.position, enemyTankPosition.transform.position) > 10f;
             stats["targetOutOfRange"] = !stats["targetReached"];
         }
         else if (consumablePosition != null)
@@ -161,7 +164,7 @@ public class R_SmartTank : AITank
     {
         GameObject pos;
         float normalisedSpeed;
-        if (enemyTankPosition != null)
+        if (enemyTankPosition != null && regenSequence.Evaluate() == R_BTNodeStates.SUCCESS)
         {
             pos = enemyTankPosition;
             normalisedSpeed = 1f;
