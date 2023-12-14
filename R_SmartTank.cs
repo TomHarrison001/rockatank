@@ -151,8 +151,10 @@ public class R_SmartTank : AITank
 
     public void Search()
     {
+        // don't search at full speed to conserve fuel
         FollowPathToRandomWorldPoint(0.7f);
         t += Time.deltaTime;
+        // search for 5 seconds before generating a new random destination
         if (t > 5)
         {
             GenerateNewRandomWorldPoint();
@@ -162,36 +164,46 @@ public class R_SmartTank : AITank
 
     public void Chase()
     {
+        // declare var for destination position and speed (dependant on urgency)
         GameObject pos;
         float normalisedSpeed;
+        // using behavioural tree to find if tank can fight another tank
         if (enemyTankPosition != null && regenSequence.Evaluate() == R_BTNodeStates.SUCCESS)
         {
             pos = enemyTankPosition;
+            // maximum speed
             normalisedSpeed = 1f;
         }
+        // second priority is consumables
         else if (consumablePosition != null)
         {
             pos = consumablePosition;
+            // less urgency so lower speed
             normalisedSpeed = 0.7f;
         }
         else if (enemyBasePosition != null)
         {
             pos = enemyBasePosition;
+            // lowest urgency so lowest speed
             normalisedSpeed = 0.5f;
         }
         else return;
+        // go to position at set speed
         FollowPathToWorldPoint(pos, normalisedSpeed);
         TurretFaceWorldPoint(pos);
     }
 
     public void Retreat()
     {
+        // first part of flee state
+        // updates last seen enemy position
         if (enemyTankPosition != null)
         {
             if (enemyLastSeen) Destroy(enemyLastSeen);
             enemyLastSeen = Instantiate(empty, enemyTankPosition.transform.position, Quaternion.identity);
         }
 
+        // falls back from last seen enemy position
         GameObject runPos = Instantiate(empty, transform.position, Quaternion.identity);
         runPos.transform.position = 2 * transform.position - enemyLastSeen.transform.position;
         TurretFaceWorldPoint(enemyLastSeen);
@@ -201,16 +213,16 @@ public class R_SmartTank : AITank
 
     public void Flee()
     {
+        // second part of flee state
+        // returns to start point
         FollowPathToWorldPoint(startPos, 1f);
     }
 
     public void Attack()
     {
+        // attacks enemy tanks before enemy bases
         if (enemyTankPosition != null)
-        {
             TurretFireAtPoint(enemyTankPosition);
-            TankGo();
-        }
         else if (enemyBasePosition != null)
             TurretFireAtPoint(enemyBasePosition);
     }
