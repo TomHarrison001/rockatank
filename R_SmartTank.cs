@@ -38,7 +38,7 @@ public class R_SmartTank : AITank
     public R_BTAction targetSpottedCheck;
     public R_BTAction targetReachedCheck;
     public R_BTAction targetEscapedCheck;
-    public R_BTSequence regenSequence;
+    public R_BTSelector regenSequence;
 
     private void Awake()
     {
@@ -86,7 +86,7 @@ public class R_SmartTank : AITank
         targetSpottedCheck = new R_BTAction(TargetSpottedCheck);
         targetReachedCheck = new R_BTAction(TargetReachedCheck);
         targetEscapedCheck = new R_BTAction(TargetEscapedCheck);
-        regenSequence = new R_BTSequence(new List<R_BTBaseNode> { healthCheck, ammoCheck, fuelCheck });
+        regenSequence = new R_BTSelector(new List<R_BTBaseNode> { healthCheck, ammoCheck, fuelCheck });
     }
 
     // throw error if prefab not used
