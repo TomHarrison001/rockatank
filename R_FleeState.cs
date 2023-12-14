@@ -28,10 +28,18 @@ public class R_FleeState : R_BaseState
 
     public override Type StateUpdate()
     {
-        tank.Flee();
-
         t += Time.deltaTime;
-        if (t < 5) return null;
+
+        if (t < 2)
+        {
+            tank.Retreat();
+            return null;
+        }
+        if (t < 5)
+        {
+            tank.Flee();
+            return null;
+        }
 
         t = 0;
         foreach (var item in tank.rules.GetRules)

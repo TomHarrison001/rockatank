@@ -4,7 +4,6 @@ using UnityEngine;
 public class R_AttackState : R_BaseState
 {
     private R_SmartTank tank;
-    private float time = 0;
 
     public R_AttackState(R_SmartTank tank)
     {
@@ -22,7 +21,6 @@ public class R_AttackState : R_BaseState
     {
         tank.stats["attackState"] = false;
 
-        time = 0;
         return null;
     }
 
@@ -30,16 +28,10 @@ public class R_AttackState : R_BaseState
     {
         tank.Attack();
 
-        time += Time.deltaTime;
-
-        if (time > 1f)
+        foreach (var item in tank.rules.GetRules)
         {
-            if (tank.stats["lowHealth"] || tank.stats["noAmmo"])
-                return typeof(R_FleeState);
-            if (tank.stats["targetEscaped"])
-                return typeof(R_SearchState);
-            else
-                return typeof(R_AttackState);
+            if (item.CheckRule(tank.stats) != null)
+                return item.CheckRule(tank.stats);
         }
 
         return null;
